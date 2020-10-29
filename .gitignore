@@ -221,4 +221,3 @@ cython_debug/
 out
 gen
 !/1.py
-!/pa.py
