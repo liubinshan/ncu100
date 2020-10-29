@@ -20,7 +20,7 @@ class GetList(Bs):
     获取文章列表类
     """
 
-    def __init__(self, url, page):
+    def __init__(self, url, page=1):
         self.page = page
         if self.page > 1:
             url = url[:-4] + "{0:s}".format(str(page - 1)) + url[-4:]
@@ -96,7 +96,6 @@ class GetContent(Bs):
 
     def __init__(self, url):
         super().__init__(url)
-        # 获取图片链接
 
     @validData(Error(400, "访问失败"), Success(200, "访问成功"))
     def getcontent(self):
@@ -122,6 +121,7 @@ class GetContent(Bs):
         except Exception as e:
             raise e
         return result
+
 
 class GetNavList(Bs):
     """
@@ -150,5 +150,5 @@ class GetNavList(Bs):
 
 
 if __name__ == "__main__":
-    l = GetContent("http://100.ncu.edu.cn/bnlc/ndjy/6db0d7284579483c8170cb0f41c5ec68.htm")
-    print(l.getcontent())
+    l = GetList('')
+    print(l.getlist())
