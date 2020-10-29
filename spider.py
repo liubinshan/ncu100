@@ -22,8 +22,9 @@ class GetList(Bs):
 
     def __init__(self, url, page):
         self.page = page
-        url = url[:-4] + "{0:s}".format(str(page-1)) + url[-4:]
-        self.baseUrl = '/'.join(url.split('/')[:-1])
+        if self.page > 1:
+            url = url[:-4] + "{0:s}".format(str(page - 1)) + url[-4:]
+        self.baseUrl = '/'.join(url.split('/')[:-1]) + '/'
         super().__init__(url)
 
     @validData(Error(400, "访问失败"), Success(200, "访问成功"))
@@ -37,7 +38,7 @@ class GetList(Bs):
             newDiv = self.bs.find('div', class_='Newslist')
             # 获取页数及文章的总数
             a = newDiv.find('div', attrs={"align": "center"})
-            pageAndCount = re.findall(r"(\d{1,5})", a.text)  # 利用正则匹配，第一项为文章数， 第二项为页数
+            pageAndCount = re.findall(r"\d{1,5}", a.text)  # 利用正则匹配，第一项为文章数， 第二项为页数
             result["page"] = int(pageAndCount[1])
             result["count"] = int(pageAndCount[0])
             # 获取文章的标题、时间、url
@@ -46,25 +47,46 @@ class GetList(Bs):
                 time = i.find('span').text
                 title = i.find('a').text
                 # 处理url
-                url = i.find('a').get('href')
+                url = i.find('a').get('href').replace(' ', '')
                 if url[0:4] == 'http':
                     pass
                 else:
-                    url = self.baseUrl + '/' + i.find('a').get('href').replace(' ', '')
-                    data.append({'time': time, 'title': title, 'url': url})
-                result['data'] = data
+                    url = self.baseUrl + i.find('a').get('href').replace(' ', '')
+                data.append({'time': time, 'title': title, 'url': url})
+            result['data'] = data
         except Exception as e:
             raise e
         return result
 
 
-class GetImageList(GetList):
+class GetImageList(Bs):
     """
     获取带图片的文章列表类（历史记录）
     """
 
     def __init__(self, url):
         super().__init__(url)
+
+    @validData(Error(400, "访问失败"), Success(200, "访问成功"))
+    def getimagelist(self):
+        data = []
+        result = {}
+        try:
+            newDiv = self.bs.find('div', class_='Newslist')
+            titleAndImage = newDiv.find_all('a')
+            for i in titleAndImage:
+                title = i.find('p').text
+                # 处理图片链接
+                imageurl = i.find('img').get('src').replace(' ', '')
+                if imageurl[0:4] == 'http':
+                    pass
+                else:
+                    imageurl = "http://100.ncu.edu.cn/" + imageurl[6:]
+                data.append({'title': title, 'imageurl': imageurl})
+            result['data'] = data
+        except Exception as e:
+            raise e
+        return result
 
 
 class GetContent(Bs):
@@ -74,12 +96,32 @@ class GetContent(Bs):
 
     def __init__(self, url):
         super().__init__(url)
+        # 获取图片链接
 
     @validData(Error(400, "访问失败"), Success(200, "访问成功"))
     def getcontent(self):
-        pass
-
-
+        """
+        :return: 一个字典，
+        """
+        result = {}
+        try:
+            titleDiv = self.bs.find('div', class_="content-title")
+            conDiv = self.bs.find('div', class_="content-con")
+            # 获取标题
+            title = titleDiv.find('h3').text
+            # 获取时间
+            time = re.findall(r'\d{1,4}-\d{1,2}-\d{1,2}', titleDiv.find('i').text)
+            # 得到内容
+            cons = conDiv.contents[1:-1]
+            content = ''
+            # 对内容进行拼接
+            for i in cons:
+                content = content + str(i)
+            data = {'title': title, 'time': time[0], 'content': content}
+            result["data"] = data
+        except Exception as e:
+            raise e
+        return result
 
 class GetNavList(Bs):
     """
@@ -108,5 +150,5 @@ class GetNavList(Bs):
 
 
 if __name__ == "__main__":
-    l=GetList("http://100.ncu.edu.cn/xqdt/index.htm", 2)
-    print(l.getlist())
+    l = GetContent("http://100.ncu.edu.cn/bnlc/ndjy/6db0d7284579483c8170cb0f41c5ec68.htm")
+    print(l.getcontent())
